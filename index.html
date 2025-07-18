@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego de Burbujas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            overflow: hidden;
+            height: 100vh;
+            cursor: crosshair;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #scoreBoard {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        #score {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin: 0;
+        }
+
+        .bubble {
+            position: absolute;
+            border-radius: 50%;
+            cursor: pointer;
+            animation: float 3s ease-in-out infinite;
+            transition: transform 0.1s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.8), transparent 50%);
+        }
+
+        .bubble:hover {
+            transform: scale(1.1);
+        }
+
+        .bubble:active {
+            transform: scale(0.9);
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
+
+        @keyframes pop {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.8; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+
+        .popping {
+            animation: pop 0.3s ease-out;
+        }
+
+        .score-popup {
+            position: absolute;
+            color: #fff;
+            font-size: 20px;
+            font-weight: bold;
+            pointer-events: none;
+            animation: scoreFloat 1s ease-out;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        @keyframes scoreFloat {
+            0% { transform: translateY(0px); opacity: 1; }
+            100% { transform: translateY(-50px); opacity: 0; }
+        }
+
+        #instructions {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            z-index: 1001;
+        }
+
+        #instructions h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 28px;
+        }
+
+        #instructions p {
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        #startBtn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        #startBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="scoreBoard">
+            <p id="score">Puntos: 0</p>
+        </div>
+        
+        <div id="instructions">
+            <h2>🎈 Juego de Burbujas</h2>
+            <p>Haz clic en las burbujas para estallarlas y ganar puntos.<br>
+            ¡Cada burbuja vale 10 puntos!</p>
+            <button id="startBtn">Comenzar Juego</button>
+        </div>
+    </div>
+
+    <script>
+        class BubbleGame {
+            constructor() {
+                this.score = 0;
+                this.gameActive = false;
+                this.bubbles = [];
+                this.colors = [
+                    '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7',
+                    '#dda0dd', '#98d8c8', '#ff7675', '#74b9ff', '#a29bfe',
+                    '#fd79a8', '#fdcb6e', '#6c5ce7', '#00b894', '#e17055'
+                ];
+                
+                this.gameContainer = document.getElementById('gameContainer');
+                this.scoreElement = document.getElementById('score');
+                this.instructions = document.getElementById('instructions');
+                this.startBtn = document.getElementById('startBtn');
+                
+                this.init();
+            }
+            
+            init() {
+                this.startBtn.addEventListener('click', () => this.startGame());
+                window.addEventListener('resize', () => this.updateGameArea());
+            }
+            
+            startGame() {
+                this.gameActive = true;
+                this.instructions.classList.add('hidden');
+                this.startBubbleGeneration();
+            }
+            
+            startBubbleGeneration() {
+                if (!this.gameActive) return;
+                
+                this.createBubble();
+                
+                // Crear nueva burbuja cada 800ms a 1500ms
+                const nextBubbleTime = Math.random() * 500 + 1000;
+                setTimeout(() => this.startBubbleGeneration(), nextBubbleTime);
+            }
+            
+            createBubble() {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                
+                // Tamaño aleatorio
+                const size = Math.random() * 100 + 200;
+                bubble.style.width = size + 'px';
+                bubble.style.height = size + 'px';
+                
+                // Color aleatorio
+                const color = this.colors[Math.floor(Math.random() * this.colors.length)];
+                bubble.style.backgroundColor = color;
+                
+                // Posición aleatoria
+                const maxX = window.innerWidth - size;
+                const maxY = window.innerHeight - size;
+                const x = Math.random() * maxX;
+                const y = Math.random() * maxY;
+                
+                bubble.style.left = x + 'px';
+                bubble.style.top = y + 'px';
+                
+                // Duración de vida aleatoria
+                const lifeTime = Math.random() * 3000 + 6000;
+                
+                // Evento de click
+                bubble.addEventListener('click', (e) => this.popBubble(e, bubble));
+                
+                this.gameContainer.appendChild(bubble);
+                this.bubbles.push(bubble);
+                
+                // Remover burbuja automáticamente después de cierto tiempo
+                setTimeout(() => {
+                    if (bubble.parentNode) {
+                        this.removeBubble(bubble);
+                    }
+                }, lifeTime);
+            }
+            
+            popBubble(event, bubble) {
+                event.stopPropagation();
+                
+                // Agregar puntos
+                this.score += 10;
+                this.updateScore();
+                
+                // Mostrar popup de puntos
+                this.showScorePopup(event.clientX, event.clientY, '+10');
+                
+                // Animación de explosión
+                bubble.classList.add('popping');
+                
+                // Remover burbuja después de la animación
+                setTimeout(() => {
+                    this.removeBubble(bubble);
+                }, 300);
+            }
+            
+            removeBubble(bubble) {
+                if (bubble.parentNode) {
+                    bubble.parentNode.removeChild(bubble);
+                }
+                const index = this.bubbles.indexOf(bubble);
+                if (index > -1) {
+                    this.bubbles.splice(index, 1);
+                }
+            }
+            
+            showScorePopup(x, y, text) {
+                const popup = document.createElement('div');
+                popup.className = 'score-popup';
+                popup.textContent = text;
+                popup.style.left = x + 'px';
+                popup.style.top = y + 'px';
+                
+                this.gameContainer.appendChild(popup);
+                
+                setTimeout(() => {
+                    if (popup.parentNode) {
+                        popup.parentNode.removeChild(popup);
+                    }
+                }, 1000);
+            }
+            
+            updateScore() {
+                this.scoreElement.textContent = `Puntos: ${this.score}`;
+            }
+            
+            updateGameArea() {
+                // Ajustar burbujas que quedan fuera de la pantalla
+                this.bubbles.forEach(bubble => {
+                    const rect = bubble.getBoundingClientRect();
+                    if (rect.right > window.innerWidth || rect.bottom > window.innerHeight) {
+                        this.removeBubble(bubble);
+                    }
+                });
+            }
+        }
+        
+        // Inicializar el juego cuando se carga la página
+        window.addEventListener('load', () => {
+            new BubbleGame();
+        });
+    </script>
+</body>
+</html>
